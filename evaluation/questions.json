@@ -1,27 +1,31 @@
-
 [
   {
     "question": "Explain Booth's multiplication algorithm.",
-    "expected_topic": "Booth's algorithm"
+    "evidence_phrases": ["Andrew Donald Booth"],
+    "expected_keywords": ["signed", "subtract"]
   },
   {
-    "question": "What are the main components of Booth's algorithm?",
-    "expected_topic": "Accumulator, multiplier, multiplicand"
+    "question": "What are the main registers used in Booth's algorithm?",
+    "evidence_phrases": ["Q-1"],
+    "expected_keywords": ["accumulator", "multiplier", "multiplicand"]
   },
   {
     "question": "What is arithmetic right shift?",
-    "expected_topic": "Arithmetic right shift"
+    "evidence_phrases": ["sign bit is preserved"],
+    "expected_keywords": ["sign bit", "right"]
   },
   {
     "question": "Explain restoring division.",
-    "expected_topic": "Restoring division"
+    "evidence_phrases": ["adding M back"],
+    "expected_keywords": ["restor", "quotient", "remainder"]
   },
   {
-    "question": "What is an addressing mode?",
-    "expected_topic": "Addressing modes"
+    "question": "How does indexed addressing mode work?",
+    "evidence_phrases": ["index register"],
+    "expected_keywords": ["index register", "effective address"]
   },
   {
-    "question": "Explain indexed addressing mode.",
-    "expected_topic": "Indexed addressing"
+    "question": "How does the LRU page replacement policy work?",
+    "expect_no_answer": true
   }
 ]

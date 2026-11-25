@@ -12,9 +12,12 @@ from src.vector_store import list_documents
 from src.generator import extract_cited_numbers, NO_ANSWER_MESSAGE
 from src.generator import generate_answer_with_usage
 from src.metrics import estimate_cost
-
-
-
+from src.eval_utils import (
+    contains_any,
+    first_relevant_rank,
+    is_no_answer,
+    keywords_present,
+)
 
 class MockUploadedFile:
     def __init__(self, name, content):
@@ -349,3 +352,27 @@ def test_estimate_cost_scales_with_tokens():
     assert estimate_cost(0, 0, rerank_searches=0) == 0
     assert estimate_cost(1_000_000, 0, rerank_searches=0) > 0
     assert estimate_cost(2000, 500) > estimate_cost(1000, 250)
+
+
+# ---------------- EVALUATION HELPER TESTS ----------------
+
+def test_contains_any_ignores_case():
+    assert contains_any("Uses an Index Register here", ["index register"])
+    assert not contains_any("nothing relevant", ["index register"])
+
+
+def test_first_relevant_rank_returns_position_or_none():
+    chunks = [{"text": "alpha"}, {"text": "has the EVIDENCE"}, {"text": "beta"}]
+
+    assert first_relevant_rank(chunks, ["evidence"]) == 2
+    assert first_relevant_rank(chunks, ["missing"]) is None
+
+
+def test_keywords_present_requires_all():
+    assert keywords_present("The accumulator and multiplier", ["accumulator", "multiplier"])
+    assert not keywords_present("Only the accumulator", ["accumulator", "multiplier"])
+
+
+def test_is_no_answer_detects_polite_refusal():
+    assert is_no_answer("I could not find relevant information in the document.")
+    assert not is_no_answer("Booth's algorithm multiplies numbers [1].")

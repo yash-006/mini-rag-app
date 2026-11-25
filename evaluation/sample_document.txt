@@ -1,0 +1,37 @@
+Computer Organization and Architecture: Study Notes
+
+1. Computer Arithmetic Overview
+Computer arithmetic deals with how a processor represents numbers and performs operations such as addition, subtraction, multiplication and division on them. Hardware designers care about speed, correctness and the amount of circuitry needed. Integers are stored as fixed-width binary words, so every operation must also consider overflow, which happens when a result does not fit in the available number of bits. The arithmetic logic unit, or ALU, is the part of the processor that carries out these operations.
+
+2. Signed Number Representation
+Most computers store signed integers in two's complement form. In this form the leftmost bit is the sign bit: 0 means positive and 1 means negative. To negate a number, invert all of its bits and add 1. Two's complement is popular because the same adder circuit works for both signed and unsigned numbers, and because there is only one representation of zero. An n-bit two's complement number can represent values from -2^(n-1) to 2^(n-1) - 1.
+
+3. Booth's Multiplication Algorithm: Overview
+Booth's algorithm multiplies two signed binary numbers that are written in two's complement form. It was invented by Andrew Donald Booth in 1950. The key idea is that a long run of 1s in the multiplier can be replaced by one subtraction at the start of the run and one addition just after the end of the run. This reduces the number of additions needed when the multiplier contains many consecutive 1s, and it handles negative multipliers without any special case.
+
+4. Booth's Algorithm: Registers and Steps
+Booth's algorithm uses these registers: the accumulator A, which starts at 0 and builds the result; the multiplier register Q; the multiplicand register M; and one extra bit called Q-1, which starts at 0 and sits to the right of Q. A counter holds the number of bits n. In each cycle the algorithm looks at the pair formed by the last bit of Q and Q-1. If the pair is 01, M is added to A. If the pair is 10, M is subtracted from A. If the pair is 00 or 11, nothing is added or subtracted. After that, A, Q and Q-1 are shifted right together by one position using an arithmetic right shift. The cycle repeats n times, and the final product is held in A and Q joined together.
+
+5. Arithmetic Right Shift
+An arithmetic right shift moves every bit of a number one place to the right while the sign bit is preserved. The sign bit is copied into the vacated position on the left, so a negative number stays negative after the shift. For a signed number in two's complement form, one arithmetic right shift is equivalent to dividing the value by 2 and rounding toward negative infinity. This differs from a logical right shift, which always fills the vacated position with 0 and is used for unsigned numbers.
+
+6. Restoring Division
+Restoring division divides an n-bit dividend by a divisor using three registers: register A, which starts at 0, register Q, which holds the dividend, and register M, which holds the divisor. In each of n cycles, the pair A and Q is shifted left by one bit, and then M is subtracted from A. If the result in A is negative, the subtraction was too large, so the last bit of Q is set to 0 and the old value of A is restored by adding M back. If the result is not negative, the last bit of Q is set to 1. After n cycles, Q holds the quotient and A holds the remainder.
+
+7. Non-Restoring Division
+Non-restoring division is a faster variant that avoids the restore step. After shifting A and Q left, the algorithm subtracts M from A if A was non-negative, or adds M to A if A was negative. The last bit of Q is set to 1 when the new A is non-negative and to 0 otherwise. If A is negative after the final cycle, one extra correction step adds M to A to produce the correct remainder. Skipping the restore saves one addition in many cycles.
+
+8. Addressing Modes: Overview
+An addressing mode specifies how the processor finds the operand of an instruction. Common modes are immediate, where the operand is part of the instruction itself; direct, where the instruction holds the memory address of the operand; indirect, where the instruction holds the address of a location that contains the operand's address; register, where the operand is in a CPU register; and register indirect, where a register holds the operand's address. Other modes include indexed, relative and base register addressing. Different modes give programmers flexibility for working with constants, variables, arrays and pointers.
+
+9. Indexed Addressing Mode
+In indexed addressing, the effective address of the operand is the sum of the contents of an index register and a constant value given in the instruction. This mode is mainly used for arrays. The constant in the instruction is the starting address of the array, and the index register holds the offset of the element being accessed. Incrementing the index register moves access to the next element without changing the instruction, so a short loop can walk through an entire array.
+
+10. Relative Addressing Mode
+In relative addressing, the effective address is found by adding a signed offset in the instruction to the current value of the program counter. This mode is used mostly for branch instructions, because the target is usually close to the current instruction. It also makes code position independent, meaning a program can be loaded at any memory location and still work, since jumps are measured from the current position rather than from a fixed address.
+
+11. The Instruction Cycle
+The processor executes a program by repeating the instruction cycle. In the fetch stage, the instruction at the address in the program counter is read from memory into the instruction register, and the program counter moves to the next instruction. In the decode stage, the control unit works out which operation is required and which operands are needed. In the execute stage the operation is carried out, and in the write-back stage the result is stored in a register or in memory. Interrupts may be checked at the end of each cycle.
+
+12. Memory Hierarchy
+Computer memory is organised as a hierarchy to balance speed, size and cost. At the top are registers, which are the fastest and smallest. Below them are cache memories, then main memory built from DRAM, and finally secondary storage such as solid-state drives and hard disks, which are the largest and slowest. Caches work because programs show locality of reference: they tend to reuse recently accessed data (temporal locality) and to access data near recently used addresses (spatial locality).
