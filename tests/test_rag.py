@@ -139,7 +139,8 @@ def test_rerank_chunks_orders_results_and_preserves_metadata():
         }
     )()
 
-    with patch("src.reranker.client.rerank", return_value=mock_response):
+    with patch("src.reranker.get_cohere_client") as mock_get_client:
+        mock_get_client.return_value.rerank.return_value = mock_response
         results = rerank_chunks(
             "Explain Booth's algorithm",
             chunks,
@@ -187,10 +188,9 @@ def test_generate_answer_uses_gemini_response():
         }
     ]
 
-    with patch(
-        "src.generator.client.models.generate_content",
-        return_value=mock_response
-    ) as mock_generate:
+    with patch("src.generator.get_gemini_client") as mock_get_client:
+        mock_generate = mock_get_client.return_value.models.generate_content
+        mock_generate.return_value = mock_response
 
         answer = generate_answer(
             "Explain Booth's algorithm",

@@ -1,29 +1,19 @@
-
 import os
+
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load variables from the local .env file (ignored if it doesn't exist)
 load_dotenv()
 
-# Gemini configuration
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Cohere configuration
-COHERE_API_KEY = os.getenv("COHERE_API_KEY")
+def get_env(name: str) -> str:
+    """Return a required environment variable or raise a clear error."""
+    value = os.getenv(name)
 
-# Qdrant configuration
-QDRANT_URL = os.getenv("QDRANT_URL")
-QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+    if not value:
+        raise ValueError(
+            f"{name} not found. Add it to your .env file "
+            f"or to your hosting platform's secrets."
+        )
 
-# Validate required credentials
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY not found in .env file")
-
-if not COHERE_API_KEY:
-    raise ValueError("COHERE_API_KEY not found in .env file")
-
-if not QDRANT_URL:
-    raise ValueError("QDRANT_URL not found in .env file")
-
-if not QDRANT_API_KEY:
-    raise ValueError("QDRANT_API_KEY not found in .env file")
+    return value

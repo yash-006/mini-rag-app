@@ -1,8 +1,8 @@
-
 from qdrant_client.models import SearchParams
 
+from src.clients import get_qdrant_client
 from src.embeddings import generate_embedding
-from src.vector_store import client, COLLECTION_NAME
+from src.vector_store import COLLECTION_NAME
 
 
 def retrieve_chunks(
@@ -20,7 +20,7 @@ def retrieve_chunks(
     query_vector = generate_embedding(query)
 
     # Search Qdrant
-    results = client.query_points(
+    results = get_qdrant_client().query_points(
         collection_name=COLLECTION_NAME,
         query=query_vector,
         limit=top_k,

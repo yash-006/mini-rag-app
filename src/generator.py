@@ -1,12 +1,7 @@
 
-from google import genai
+from src.clients import get_gemini_client
 
-from config import GEMINI_API_KEY
-
-
-client = genai.Client(
-    api_key=GEMINI_API_KEY
-)
+MODEL_NAME = "gemini-3.5-flash-lite"
 
 MODEL_NAME = "gemini-3.5-flash-lite"
 
@@ -54,7 +49,7 @@ def generate_answer(query: str, retrieved_chunks: list[dict]) -> str:
     ANSWER:
     """
 
-    response = client.models.generate_content(
+    response = get_gemini_client().models.generate_content(
         model=MODEL_NAME,
         contents=prompt
     )

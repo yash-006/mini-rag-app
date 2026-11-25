@@ -1,12 +1,8 @@
 
-from google import genai
-from config import GEMINI_API_KEY
+from src.clients import get_gemini_client
 
-
-# Initialize Gemini client
-client = genai.Client(
-    api_key=GEMINI_API_KEY
-)
+MODEL_NAME = "gemini-embedding-001"
+EMBEDDING_DIMENSION = 3072
 
 MODEL_NAME = "gemini-embedding-001"
 EMBEDDING_DIMENSION = 3072
@@ -20,7 +16,7 @@ def generate_embedding(text: str) -> list[float]:
     if not text or not text.strip():
         raise ValueError("Text cannot be empty.")
 
-    response = client.models.embed_content(
+    response = get_gemini_client().models.embed_content(
         model=MODEL_NAME,
         contents=text,
         config={

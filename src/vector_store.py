@@ -1,18 +1,11 @@
-
 import uuid
 
-from qdrant_client import QdrantClient, models
+from qdrant_client import models
 
-from config import QDRANT_URL, QDRANT_API_KEY
+from src.clients import get_qdrant_client
 from src.embeddings import generate_embedding
 
-
 COLLECTION_NAME = "mini_rag_documents"
-
-client = QdrantClient(
-    url=QDRANT_URL,
-    api_key=QDRANT_API_KEY
-)
 
 
 def store_chunks(chunks: list[str], document_name: str):
@@ -41,7 +34,7 @@ def store_chunks(chunks: list[str], document_name: str):
 
         points.append(point)
 
-    client.upsert(
+    get_qdrant_client().upsert(
         collection_name=COLLECTION_NAME,
         points=points,
         wait=True

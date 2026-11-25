@@ -1,13 +1,5 @@
 
-import cohere
-
-from config import COHERE_API_KEY
-
-
-# Initialize Cohere client
-client = cohere.ClientV2(
-    api_key=COHERE_API_KEY
-)
+from src.clients import get_cohere_client
 
 MODEL_NAME = "rerank-v5.0-fast"
 
@@ -40,7 +32,7 @@ def rerank_chunks(
     ]
 
     # Call Cohere Rerank API
-    response = client.rerank(
+    response = get_cohere_client().rerank(
         model=MODEL_NAME,
         query=query,
         documents=documents,
