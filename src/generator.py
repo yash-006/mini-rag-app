@@ -43,13 +43,17 @@ def extract_cited_numbers(answer: str, source_count: int) -> list[int]:
     return sorted(cited)
 
 
-def generate_answer(query: str, retrieved_chunks: list[dict]) -> str:
+def generate_answer_with_usage(
+    query: str,
+    retrieved_chunks: list[dict],
+) -> tuple[str, dict]:
+    """Return (answer, token usage)."""
 
     if not query or not query.strip():
         raise ValueError("Question cannot be empty.")
 
     if not retrieved_chunks:
-        return NO_ANSWER_MESSAGE
+        return NO_ANSWER_MESSAGE, {"prompt_tokens": 0, "output_tokens": 0}
 
     context = build_context(retrieved_chunks)
 
@@ -79,4 +83,17 @@ ANSWER:"""
     if not response.text:
         raise RuntimeError("Gemini returned an empty response.")
 
-    return response.text
+    usage = getattr(response, "usage_metadata", None)
+
+    return response.text, {
+        "prompt_tokens": getattr(usage, "prompt_token_count", 0) or 0,
+        "output_tokens": getattr(usage, "candidates_token_count", 0) or 0,
+    }
+
+
+def generate_answer(query: str, retrieved_chunks: list[dict]) -> str:
+    """Same as before: returns only the answer text."""
+
+    answer, _ = generate_answer_with_usage(query, retrieved_chunks)
+
+    return answer

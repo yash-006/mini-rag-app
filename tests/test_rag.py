@@ -10,6 +10,10 @@ from src.vector_store import store_chunks, UPSERT_BATCH_SIZE
 from types import SimpleNamespace
 from src.vector_store import list_documents
 from src.generator import extract_cited_numbers, NO_ANSWER_MESSAGE
+from src.generator import generate_answer_with_usage
+from src.metrics import estimate_cost
+
+
 
 
 class MockUploadedFile:
@@ -319,3 +323,29 @@ def test_generate_answer_numbers_sources_in_prompt():
     assert 'id="2"' in prompt
     assert "First text" in prompt
     assert NO_ANSWER_MESSAGE in prompt
+
+# ---------------- USAGE AND COST TESTS ----------------
+
+def test_generate_answer_with_usage_reads_token_counts():
+    mock_response = SimpleNamespace(
+        text="Answer [1].",
+        usage_metadata=SimpleNamespace(
+            prompt_token_count=120,
+            candidates_token_count=30,
+        ),
+    )
+
+    chunks = [{"text": "Some text", "document_name": "a.pdf", "chunk_index": 0}]
+
+    with patch("src.generator.get_gemini_client") as mock_get_client:
+        mock_get_client.return_value.models.generate_content.return_value = mock_response
+        answer, usage = generate_answer_with_usage("question", chunks)
+
+    assert answer == "Answer [1]."
+    assert usage == {"prompt_tokens": 120, "output_tokens": 30}
+
+
+def test_estimate_cost_scales_with_tokens():
+    assert estimate_cost(0, 0, rerank_searches=0) == 0
+    assert estimate_cost(1_000_000, 0, rerank_searches=0) > 0
+    assert estimate_cost(2000, 500) > estimate_cost(1000, 250)
