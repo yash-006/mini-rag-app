@@ -1,0 +1,27 @@
+
+[
+  {
+    "question": "Explain Booth's multiplication algorithm.",
+    "expected_topic": "Booth's algorithm"
+  },
+  {
+    "question": "What are the main components of Booth's algorithm?",
+    "expected_topic": "Accumulator, multiplier, multiplicand"
+  },
+  {
+    "question": "What is arithmetic right shift?",
+    "expected_topic": "Arithmetic right shift"
+  },
+  {
+    "question": "Explain restoring division.",
+    "expected_topic": "Restoring division"
+  },
+  {
+    "question": "What is an addressing mode?",
+    "expected_topic": "Addressing modes"
+  },
+  {
+    "question": "Explain indexed addressing mode.",
+    "expected_topic": "Indexed addressing"
+  }
+]
