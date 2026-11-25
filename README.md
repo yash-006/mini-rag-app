@@ -205,6 +205,7 @@ evaluation/                Sample document, gold questions, results
 - **Citations point to chunks, not pages:** page markers stay in the text but page numbers are not stored as separate metadata.
 - **Evaluation:** small gold set with keyword-based judging.
 - **Console warnings on the hosted page** (blocked analytics script, "unrecognized feature" and `/api/v2/user/details` 404) come from Streamlit Community Cloud's wrapper page, not from the app.
+- **Provider overload (503):** the Gemini free tier sometimes returns "high demand" errors. The app retries with backoff, falls back to a second model, and then shows a friendly "try again in a minute" message.
 
 **What I would do next**
 

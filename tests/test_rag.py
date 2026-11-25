@@ -376,3 +376,32 @@ def test_keywords_present_requires_all():
 def test_is_no_answer_detects_polite_refusal():
     assert is_no_answer("I could not find relevant information in the document.")
     assert not is_no_answer("Booth's algorithm multiplies numbers [1].")
+
+# ---------------- RETRY TESTS ----------------
+
+def test_generate_retries_on_temporary_error():
+    ok_response = SimpleNamespace(text="Answer [1].", usage_metadata=None)
+    chunks = [{"text": "Some text", "document_name": "a.pdf", "chunk_index": 0}]
+
+    with patch("src.generator.get_gemini_client") as mock_get_client, \
+         patch("src.generator.time.sleep"):
+        generate = mock_get_client.return_value.models.generate_content
+        generate.side_effect = [Exception("503 UNAVAILABLE"), ok_response]
+
+        answer, _ = generate_answer_with_usage("question", chunks)
+
+    assert answer == "Answer [1]."
+    assert generate.call_count == 2
+
+
+def test_generate_gives_friendly_error_when_model_stays_busy():
+    chunks = [{"text": "Some text", "document_name": "a.pdf", "chunk_index": 0}]
+
+    with patch("src.generator.get_gemini_client") as mock_get_client, \
+         patch("src.generator.time.sleep"):
+        mock_get_client.return_value.models.generate_content.side_effect = (
+            Exception("503 UNAVAILABLE")
+        )
+
+        with pytest.raises(RuntimeError, match="busy"):
+            generate_answer_with_usage("question", chunks)

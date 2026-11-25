@@ -5,7 +5,8 @@ import streamlit as st
 from src.document_loader import extract_text
 from src.embeddings import EMBEDDING_DIMENSION, MODEL_NAME as EMBEDDING_MODEL
 from src.generator import (
-    MODEL_NAME as LLM_MODEL,
+    MODEL_NAME as PRIMARY_MODEL,
+    BACKUP_MODEL,
     NO_ANSWER_MESSAGE,
     extract_cited_numbers,
     generate_answer_with_usage,
@@ -283,7 +284,8 @@ with st.sidebar:
         st.write("**Vector DB:** Qdrant Cloud (cosine)")
         st.write(f"**Reranker:** {RERANK_MODEL}")
         st.write(f"**Min relevance:** {MIN_RELEVANCE_SCORE}")
-        st.write(f"**LLM:** {LLM_MODEL}")
+        st.write(f"**LLM:** {PRIMARY_MODEL}")
+        st.write(f"**Backup LLM:** {BACKUP_MODEL}")
 
     st.caption("Costs shown are rough estimates.")
 
