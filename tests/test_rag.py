@@ -5,6 +5,8 @@ import pytest
 
 from src.document_loader import extract_text
 from src.text_chunker import chunk_text
+from unittest.mock import MagicMock
+from src.vector_store import store_chunks, UPSERT_BATCH_SIZE
 
 
 class MockUploadedFile:
@@ -199,3 +201,37 @@ def test_generate_answer_uses_gemini_response():
 
     assert answer == "Booth's algorithm is used for binary multiplication."
     mock_generate.assert_called_once()
+
+# ---------------- VECTOR STORE TESTS ----------------
+
+def test_store_chunks_uses_stable_ids_and_replaces_old_version():
+    fake_client = MagicMock()
+
+    with patch("src.vector_store.get_qdrant_client", return_value=fake_client), \
+         patch("src.vector_store.generate_embeddings",
+               return_value=[[0.1, 0.2], [0.3, 0.4]]):
+
+        first_count = store_chunks(["a", "b"], "doc.txt")
+        first_points = fake_client.upsert.call_args.kwargs["points"]
+
+        store_chunks(["a", "b"], "doc.txt")
+        second_points = fake_client.upsert.call_args.kwargs["points"]
+
+    assert first_count == 2
+    assert [p.id for p in first_points] == [p.id for p in second_points]
+    assert fake_client.delete.call_count == 2
+    assert first_points[0].payload["document_name"] == "doc.txt"
+    assert first_points[0].payload["document_id"]
+
+
+def test_store_chunks_upserts_in_batches():
+    fake_client = MagicMock()
+    total = UPSERT_BATCH_SIZE * 2 + 1
+
+    with patch("src.vector_store.get_qdrant_client", return_value=fake_client), \
+         patch("src.vector_store.generate_embeddings",
+               return_value=[[0.1, 0.2]] * total):
+
+        store_chunks(["x"] * total, "big.txt")
+
+    assert fake_client.upsert.call_count == 3

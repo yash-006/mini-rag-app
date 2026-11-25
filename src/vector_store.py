@@ -1,43 +1,92 @@
+import hashlib
 import uuid
 
 from qdrant_client import models
 
 from src.clients import get_qdrant_client
-from src.embeddings import generate_embedding
+from src.embeddings import generate_embeddings
 
 COLLECTION_NAME = "mini_rag_documents"
+UPSERT_BATCH_SIZE = 64
 
 
-def store_chunks(chunks: list[str], document_name: str):
+def make_document_id(document_name: str) -> str:
+    """Same file name always gives the same id."""
+    return hashlib.sha256(document_name.encode("utf-8")).hexdigest()[:16]
+
+
+def make_point_id(document_id: str, chunk_index: int) -> str:
+    """Same document + same chunk number always gives the same point id."""
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"{document_id}:{chunk_index}"))
+
+
+def ensure_payload_index() -> None:
+    """Make filtering by document_id fast. Safe to call many times."""
+    get_qdrant_client().create_payload_index(
+        collection_name=COLLECTION_NAME,
+        field_name="document_id",
+        field_schema=models.PayloadSchemaType.KEYWORD,
+    )
+
+
+def delete_document(document_id: str) -> None:
+    """Remove every stored chunk that belongs to one document."""
+    get_qdrant_client().delete(
+        collection_name=COLLECTION_NAME,
+        points_selector=models.FilterSelector(
+            filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="document_id",
+                        match=models.MatchValue(value=document_id),
+                    )
+                ]
+            )
+        ),
+        wait=True,
+    )
+
+
+def store_chunks(chunks: list[str], document_name: str) -> int:
     """
-    Generate embeddings and store text chunks in Qdrant.
+    Embed chunks and store them in Qdrant.
+    Re-uploading the same document name replaces the old version.
     """
 
     if not chunks:
         raise ValueError("No chunks provided.")
 
-    points = []
+    document_id = make_document_id(document_name)
 
-    for index, chunk in enumerate(chunks):
+    # 1. Embed FIRST. If this fails, the old data is still untouched.
+    embeddings = generate_embeddings(chunks)
 
-        embedding = generate_embedding(chunk)
-
-        point = models.PointStruct(
-            id=str(uuid.uuid4()),
+    points = [
+        models.PointStruct(
+            id=make_point_id(document_id, index),
             vector=embedding,
             payload={
                 "text": chunk,
                 "document_name": document_name,
-                "chunk_index": index
-            }
+                "document_id": document_id,
+                "chunk_index": index,
+                "total_chunks": len(chunks),
+            },
         )
+        for index, (chunk, embedding) in enumerate(zip(chunks, embeddings))
+    ]
 
-        points.append(point)
+    # 2. Remove the old version, then save the new one.
+    ensure_payload_index()
+    delete_document(document_id)
 
-    get_qdrant_client().upsert(
-        collection_name=COLLECTION_NAME,
-        points=points,
-        wait=True
-    )
+    client = get_qdrant_client()
+
+    for start in range(0, len(points), UPSERT_BATCH_SIZE):
+        client.upsert(
+            collection_name=COLLECTION_NAME,
+            points=points[start:start + UPSERT_BATCH_SIZE],
+            wait=True,
+        )
 
     return len(points)
