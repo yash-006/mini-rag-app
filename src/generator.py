@@ -5,15 +5,14 @@ from google.genai import types
 
 from src.clients import get_gemini_client
 
-# Model configuration
-PRIMARY_MODEL = "gemini-3.5-flash-lite"
+# Main model: used first
+MODEL_NAME = "gemini-3.5-flash-lite"
+
+# Backup model: used if the primary model remains unavailable
 BACKUP_MODEL = "gemini-3.6-flash"
 
 # Models are tried in this order
-MODEL_NAMES = [PRIMARY_MODEL, BACKUP_MODEL]
-
-# Backward compatibility for app.py
-MODEL_NAME = PRIMARY_MODEL
+MODEL_NAMES = [MODEL_NAME, BACKUP_MODEL]
 
 MAX_RETRIES = 2
 RETRY_DELAY_SECONDS = 2

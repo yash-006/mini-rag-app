@@ -278,14 +278,27 @@ with st.sidebar:
     top_k = st.slider("Chunks to retrieve (top-k)", 3, 10, 5)
     top_n = st.slider("Chunks kept after rerank", 1, 5, 3)
 
+    st.markdown("### 🤖 AI Model Configuration")
+
+    st.success(f"**Primary Model:** {PRIMARY_MODEL}")
+
+    st.info(f"**Backup Model:** {BACKUP_MODEL}")
+
+    st.caption(
+        "The primary model is used first. "
+        "The backup model is attempted if the primary "
+        "model encounters temporary errors."
+    )
+
     with st.expander("🔧 Pipeline details"):
         st.write(f"**Chunking:** {CHUNK_SIZE} chars, {CHUNK_OVERLAP} overlap")
         st.write(f"**Embeddings:** {EMBEDDING_MODEL} ({EMBEDDING_DIMENSION} dims)")
         st.write("**Vector DB:** Qdrant Cloud (cosine)")
         st.write(f"**Reranker:** {RERANK_MODEL}")
         st.write(f"**Min relevance:** {MIN_RELEVANCE_SCORE}")
-        st.write(f"**LLM:** {PRIMARY_MODEL}")
+        st.write(f"**Primary LLM:** {PRIMARY_MODEL}")
         st.write(f"**Backup LLM:** {BACKUP_MODEL}")
+        st.write(f"**Fallback order:** {PRIMARY_MODEL} → {BACKUP_MODEL}")
 
     st.caption("Costs shown are rough estimates.")
 
