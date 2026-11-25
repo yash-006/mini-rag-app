@@ -2,12 +2,14 @@
 from src.clients import get_cohere_client
 
 MODEL_NAME = "rerank-v5.0-fast"
+MIN_RELEVANCE_SCORE = 0.1
 
 
 def rerank_chunks(
     query: str,
     retrieved_chunks: list[dict],
-    top_n: int = 3
+    top_n: int = 3,
+    min_score: float = 0.0
 ) -> list[dict]:
     """
     Rerank retrieved document chunks using Cohere.
@@ -43,6 +45,8 @@ def rerank_chunks(
     reranked_chunks = []
 
     for result in response.results:
+        if result.relevance_score < min_score:
+            continue
 
         chunk = retrieved_chunks[result.index].copy()
 

@@ -5,8 +5,8 @@ from src.document_loader import extract_text
 from src.text_chunker import chunk_text
 from src.vector_store import store_chunks, list_documents, make_document_id
 from src.retriever import retrieve_chunks
-from src.reranker import rerank_chunks
-from src.generator import generate_answer
+from src.reranker import rerank_chunks, MIN_RELEVANCE_SCORE
+from src.generator import generate_answer, extract_cited_numbers, NO_ANSWER_MESSAGE
 
 
 # ==========================================
@@ -18,6 +18,27 @@ st.set_page_config(
     page_icon="📚",
     layout="wide"
 )
+
+def render_sources(sources, answer):
+    """Show the source snippets that the [1], [2] numbers point to."""
+
+    if not sources or answer.strip() == NO_ANSWER_MESSAGE:
+        return
+
+    cited = extract_cited_numbers(answer, len(sources))
+
+    st.markdown("**Sources**")
+
+    for number, source in enumerate(sources, start=1):
+        tag = " ✅ cited" if number in cited else ""
+        title = (
+            f"[{number}] {source['document_name']} · "
+            f"chunk {source['chunk_index']}{tag}"
+        )
+
+        with st.expander(title, expanded=number in cited):
+            st.write(source["text"])
+            st.caption(f"Relevance score: {source.get('rerank_score', 0):.3f}")
 
 
 # ==========================================
@@ -312,12 +333,7 @@ if st.session_state.active_document_id:
             st.markdown(message["content"])
 
             if message["role"] == "assistant" and "sources" in message:
-                with st.expander("View Sources"):
-                    for source in message["sources"]:
-                        st.write(
-                            f"Document: {source['document_name']} | "
-                            f"Chunk: {source['chunk_index']}"
-                        )
+                render_sources(message["sources"], message["content"])
 
     # Chat input
     user_query = st.chat_input("Ask a question about your document...")
@@ -348,7 +364,8 @@ if st.session_state.active_document_id:
                     reranked_chunks = rerank_chunks(
                         query=user_query,
                         retrieved_chunks=retrieved_chunks,
-                        top_n=3
+                        top_n=3,
+                        min_score=MIN_RELEVANCE_SCORE
                     )
 
                     # Generate final answer
@@ -360,12 +377,7 @@ if st.session_state.active_document_id:
                     st.markdown(answer)
 
                     # Display source information
-                    with st.expander("View Sources"):
-                        for source in reranked_chunks:
-                            st.write(
-                                f"Document: {source['document_name']} | "
-                                f"Chunk: {source['chunk_index']}"
-                            )
+                    render_sources(reranked_chunks, answer)
 
                     # Save assistant response
                     st.session_state.messages.append({

@@ -9,6 +9,7 @@ from unittest.mock import MagicMock
 from src.vector_store import store_chunks, UPSERT_BATCH_SIZE
 from types import SimpleNamespace
 from src.vector_store import list_documents
+from src.generator import extract_cited_numbers, NO_ANSWER_MESSAGE
 
 
 class MockUploadedFile:
@@ -273,3 +274,48 @@ def test_list_documents_returns_sorted_entries():
         documents = list_documents()
 
     assert [d["document_name"] for d in documents] == ["a.pdf", "b.pdf"]
+
+
+# ---------------- CITATION TESTS ----------------
+
+def test_extract_cited_numbers_finds_valid_citations_only():
+    answer = "Booth's algorithm multiplies signed numbers [1]. It shifts [1, 3] and [9]."
+
+    assert extract_cited_numbers(answer, 3) == [1, 3]
+
+
+def test_rerank_chunks_drops_low_scores():
+    chunks = [{"text": "a"}, {"text": "b"}]
+
+    mock_response = SimpleNamespace(results=[
+        SimpleNamespace(index=0, relevance_score=0.9),
+        SimpleNamespace(index=1, relevance_score=0.01),
+    ])
+
+    with patch("src.reranker.get_cohere_client") as mock_get_client:
+        mock_get_client.return_value.rerank.return_value = mock_response
+        results = rerank_chunks("question", chunks, top_n=2, min_score=0.1)
+
+    assert len(results) == 1
+    assert results[0]["text"] == "a"
+
+
+def test_generate_answer_numbers_sources_in_prompt():
+    mock_response = SimpleNamespace(text="Answer [1].")
+
+    chunks = [
+        {"text": "First text", "document_name": "a.pdf", "chunk_index": 0},
+        {"text": "Second text", "document_name": "a.pdf", "chunk_index": 1},
+    ]
+
+    with patch("src.generator.get_gemini_client") as mock_get_client:
+        mock_generate = mock_get_client.return_value.models.generate_content
+        mock_generate.return_value = mock_response
+        generate_answer("question", chunks)
+
+    prompt = mock_generate.call_args.kwargs["contents"]
+
+    assert 'id="1"' in prompt
+    assert 'id="2"' in prompt
+    assert "First text" in prompt
+    assert NO_ANSWER_MESSAGE in prompt
