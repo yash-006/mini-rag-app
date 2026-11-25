@@ -21,11 +21,18 @@ def make_point_id(document_id: str, chunk_index: int) -> str:
 
 
 def ensure_payload_index() -> None:
-    """Make filtering by document_id fast. Safe to call many times."""
-    get_qdrant_client().create_payload_index(
+    """Make filtering fast. Safe to call many times."""
+    client = get_qdrant_client()
+
+    client.create_payload_index(
         collection_name=COLLECTION_NAME,
         field_name="document_id",
         field_schema=models.PayloadSchemaType.KEYWORD,
+    )
+    client.create_payload_index(
+        collection_name=COLLECTION_NAME,
+        field_name="chunk_index",
+        field_schema=models.PayloadSchemaType.INTEGER,
     )
 
 
@@ -90,3 +97,43 @@ def store_chunks(chunks: list[str], document_name: str) -> int:
         )
 
     return len(points)
+
+def list_documents() -> list[dict]:
+    """
+    Return one entry per stored document.
+    Every document has exactly one chunk number 0, so we only fetch those.
+    """
+    client = get_qdrant_client()
+
+    documents = []
+    offset = None
+
+    while True:
+        points, offset = client.scroll(
+            collection_name=COLLECTION_NAME,
+            scroll_filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="chunk_index",
+                        match=models.MatchValue(value=0),
+                    )
+                ]
+            ),
+            limit=100,
+            offset=offset,
+            with_payload=["document_id", "document_name", "total_chunks"],
+            with_vectors=False,
+        )
+
+        for point in points:
+            payload = point.payload or {}
+            documents.append({
+                "document_id": payload.get("document_id", ""),
+                "document_name": payload.get("document_name", ""),
+                "total_chunks": payload.get("total_chunks", 0),
+            })
+
+        if offset is None:
+            break
+
+    return sorted(documents, key=lambda d: d["document_name"].lower())

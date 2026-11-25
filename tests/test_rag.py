@@ -7,6 +7,8 @@ from src.document_loader import extract_text
 from src.text_chunker import chunk_text
 from unittest.mock import MagicMock
 from src.vector_store import store_chunks, UPSERT_BATCH_SIZE
+from types import SimpleNamespace
+from src.vector_store import list_documents
 
 
 class MockUploadedFile:
@@ -235,3 +237,39 @@ def test_store_chunks_upserts_in_batches():
         store_chunks(["x"] * total, "big.txt")
 
     assert fake_client.upsert.call_count == 3
+
+# ---------------- DOCUMENT SCOPE TESTS ----------------
+
+def test_retrieve_chunks_filters_by_document_id():
+    fake_client = MagicMock()
+    fake_client.query_points.return_value.points = []
+
+    with patch("src.retriever.get_qdrant_client", return_value=fake_client), \
+         patch("src.retriever.generate_embedding", return_value=[0.1, 0.2]):
+
+        retrieve_chunks("hello", document_id="abc123")
+
+    query_filter = fake_client.query_points.call_args.kwargs["query_filter"]
+
+    assert query_filter.must[0].key == "document_id"
+    assert query_filter.must[0].match.value == "abc123"
+
+
+def test_list_documents_returns_sorted_entries():
+    fake_client = MagicMock()
+    fake_client.scroll.return_value = (
+        [
+            SimpleNamespace(payload={
+                "document_id": "b", "document_name": "b.pdf", "total_chunks": 3
+            }),
+            SimpleNamespace(payload={
+                "document_id": "a", "document_name": "a.pdf", "total_chunks": 5
+            }),
+        ],
+        None,
+    )
+
+    with patch("src.vector_store.get_qdrant_client", return_value=fake_client):
+        documents = list_documents()
+
+    assert [d["document_name"] for d in documents] == ["a.pdf", "b.pdf"]

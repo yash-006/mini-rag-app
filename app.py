@@ -3,7 +3,7 @@ import streamlit as st
 
 from src.document_loader import extract_text
 from src.text_chunker import chunk_text
-from src.vector_store import store_chunks
+from src.vector_store import store_chunks, list_documents, make_document_id
 from src.retriever import retrieve_chunks
 from src.reranker import rerank_chunks
 from src.generator import generate_answer
@@ -38,6 +38,12 @@ if "stored_count" not in st.session_state:
 
 if "ingestion_complete" not in st.session_state:
     st.session_state.ingestion_complete = False
+
+if "active_document_id" not in st.session_state:
+    st.session_state.active_document_id = None
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 
 # ==========================================
@@ -149,6 +155,8 @@ if uploaded_file is not None:
             st.session_state.processed_file = uploaded_file.name
             st.session_state.stored_count = stored_count
             st.session_state.ingestion_complete = True
+            st.session_state.active_document_id = make_document_id(uploaded_file.name)
+            st.session_state.messages = []
 
             st.success(
                 "Document ingestion completed successfully!"
@@ -268,12 +276,35 @@ if st.session_state.extracted_text:
 st.divider()
 st.header("Ask Questions About Your Document")
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+try:
+    stored_documents = list_documents()
+except Exception as e:
+    stored_documents = []
+    st.error(f"Could not load stored documents: {e}")
 
-# Check whether a document has been processed
-if st.session_state.ingestion_complete:
+if stored_documents:
+    document_ids = [d["document_id"] for d in stored_documents]
+    document_labels = {
+        d["document_id"]: f"{d['document_name']} ({d['total_chunks']} chunks)"
+        for d in stored_documents
+    }
+
+    if st.session_state.active_document_id not in document_ids:
+        st.session_state.active_document_id = document_ids[0]
+
+    selected_id = st.selectbox(
+        "Choose a document to ask about",
+        options=document_ids,
+        index=document_ids.index(st.session_state.active_document_id),
+        format_func=lambda doc_id: document_labels[doc_id],
+    )
+
+    if selected_id != st.session_state.active_document_id:
+        st.session_state.active_document_id = selected_id
+        st.session_state.messages = []
+        st.rerun()
+
+if st.session_state.active_document_id:
 
     # Display previous messages
     for message in st.session_state.messages:
@@ -309,7 +340,8 @@ if st.session_state.ingestion_complete:
                     # Retrieve relevant chunks
                     retrieved_chunks = retrieve_chunks(
                         query=user_query,
-                        top_k=5
+                        top_k=5,
+                        document_id=st.session_state.active_document_id
                     )
 
                     # Rerank retrieved chunks
